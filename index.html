@@ -18,7 +18,7 @@
   html, body {
     background: var(--color-cream);
     color: var(--color-black);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
   }
 
   .sr-only {
@@ -55,6 +55,42 @@
     color: var(--color-blue);
   }
 
+  .owner-progress {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+
+  .owner-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #FFFFFF;
+    border: 2px solid var(--color-black);
+    color: var(--color-black);
+    font-size: 0.85rem;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  .owner-badge[data-owner="Quentin"] {
+    border-color: var(--color-blue);
+    color: var(--color-blue);
+  }
+
+  .owner-badge[data-owner="Joséphine"] {
+    border-color: var(--color-orange-text);
+    color: var(--color-orange-text);
+  }
+
+  .owner-badge[data-owner="Himanshu"] {
+    border-color: var(--color-black);
+    color: var(--color-black);
+  }
+
   .error-banner {
     background: var(--color-orange-text);
     color: var(--color-cream);
@@ -79,7 +115,7 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    background: var(--color-cream);
+    background: #FFFFFF;
     color: var(--color-black);
     border: 2px solid var(--color-black);
     border-radius: 8px;
@@ -93,7 +129,11 @@
   }
 
   .cell.completed {
-    background: #E4D9BC;
+    background: #16A34A;
+  }
+
+  .cell.completed:not(.free) .cell-label {
+    text-decoration: line-through;
   }
 
   .cell.free {
@@ -156,6 +196,7 @@
   @media (max-width: 600px) {
     .page { padding: 8px; }
     .cell-label { -webkit-line-clamp: 2; }
+    .owner-badge { font-size: 0.7rem; padding: 3px 7px; }
   }
 
   #celebration {
@@ -309,7 +350,14 @@
   <div class="page">
     <header class="app-header">
       <h1>Bingo des Amis</h1>
-      <p id="progress">Chargement…</p>
+      <div>
+        <p id="progress">Chargement…</p>
+        <div id="ownerProgress" class="owner-progress">
+          <span class="owner-badge" data-owner="Quentin">Quentin <strong id="prog-Quentin">0</strong>/15</span>
+          <span class="owner-badge" data-owner="Joséphine">Joséphine <strong id="prog-Joséphine">0</strong>/15</span>
+          <span class="owner-badge" data-owner="Himanshu">Himanshu <strong id="prog-Himanshu">0</strong>/15</span>
+        </div>
+      </div>
     </header>
     <div id="errorBanner" class="error-banner" role="alert" hidden>Connexion Supabase indisponible</div>
     <div id="board" class="board" role="group" aria-label="Grille de bingo 7 par 7"></div>
@@ -423,6 +471,7 @@
         renderAll();
         checkLines({ silent: true });
         updateProgress();
+        updateOwnerProgress();
         hideErrorBanner();
       }).catch(function () {
         renderFallback();
@@ -518,6 +567,7 @@
 
       checkLines({ silent: false });
       updateProgress();
+      updateOwnerProgress();
 
       sb.from('bingo_squares')
         .update({
@@ -533,6 +583,7 @@
             renderCell(id);
             checkLines({ silent: true });
             updateProgress();
+            updateOwnerProgress();
             announce('Échec de la mise à jour, réessaie.');
           }
         })
@@ -541,6 +592,7 @@
           renderCell(id);
           checkLines({ silent: true });
           updateProgress();
+          updateOwnerProgress();
           announce('Échec de la mise à jour, réessaie.');
         });
     }
@@ -566,6 +618,17 @@
         }
       });
       progressEl.textContent = done + ' / ' + total + ' complétées';
+    }
+
+    function updateOwnerProgress() {
+      var counts = { Quentin: 0, 'Joséphine': 0, Himanshu: 0 };
+      state.forEach(function (row) {
+        if (!row.is_free && row.completed && counts.hasOwnProperty(row.owner)) counts[row.owner]++;
+      });
+      Object.keys(counts).forEach(function (owner) {
+        var el = document.getElementById('prog-' + owner);
+        if (el) el.textContent = String(counts[owner]);
+      });
     }
 
     function checkLines(opts) {
@@ -666,6 +729,7 @@
             : ' décochée.'));
           checkLines({ silent: false });
           updateProgress();
+          updateOwnerProgress();
         })
         .subscribe(function (status) {
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
