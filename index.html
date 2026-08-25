@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bingo des Amis</title>
+<style>
+  :root {
+    --color-cream: #F7F0E1;
+    --color-black: #111111;
+    --color-blue: #1B4DE4;
+    --color-orange-text: #C2410C;
+    --color-orange-fill: #F97316;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--color-cream);
+    color: var(--color-black);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .app-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .app-header h1 {
+    font-size: clamp(1.25rem, 4vw, 2rem);
+  }
+
+  #progress {
+    font-weight: bold;
+    color: var(--color-blue);
+  }
+
+  .error-banner {
+    background: var(--color-orange-text);
+    color: var(--color-cream);
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    font-weight: bold;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: clamp(2px, 0.8vw, 8px);
+  }
+
+  .cell {
+    position: relative;
+    min-width: 0;
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: var(--color-cream);
+    color: var(--color-black);
+    border: 2px solid var(--color-black);
+    border-radius: 8px;
+    padding: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+  }
+
+  .cell:disabled {
+    cursor: default;
+  }
+
+  .cell.completed {
+    background: #E4D9BC;
+  }
+
+  .cell.free {
+    background: #DCEBFF;
+    opacity: 0.9;
+  }
+
+  .cell.fallback {
+    background: #EDEDED;
+    color: #777;
+    cursor: default;
+  }
+
+  .cell:focus-visible {
+    outline: 3px solid var(--color-blue);
+    outline-offset: 2px;
+  }
+
+  .cell-emoji {
+    line-height: 1;
+  }
+
+  .cell-emoji img.emoji {
+    width: clamp(16px, 4.5vw, 32px);
+    height: clamp(16px, 4.5vw, 32px);
+    display: block;
+  }
+
+  .cell-label {
+    font-size: clamp(0.5rem, 1.9vw, 0.8rem);
+    line-height: 1.15;
+    text-align: center;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+  }
+
+  .owner-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: clamp(12px, 3.2vw, 16px);
+    height: clamp(12px, 3.2vw, 16px);
+    border-radius: 50%;
+    border: 2px solid var(--color-black);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  .owner-dot.owner-orange {
+    color: var(--color-black);
+  }
+
+  @media (max-width: 600px) {
+    .page { padding: 8px; }
+    .cell-label { -webkit-line-clamp: 2; }
+  }
+
+  #celebration {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  .confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+
+  .celebration-banner {
+    position: fixed;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--color-black);
+    color: var(--color-cream);
+    padding: 14px 22px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+
+  .gate-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--color-cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+
+  .gate-box {
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .gate-box h1 {
+    margin-bottom: 10px;
+    font-size: clamp(1.25rem, 5vw, 1.8rem);
+  }
+
+  .gate-notice {
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 20px;
+  }
+
+  .gate-box label {
+    display: block;
+    text-align: left;
+    font-weight: bold;
+    margin-bottom: 6px;
+  }
+
+  #passInput {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid var(--color-black);
+    border-radius: 6px;
+    margin-bottom: 18px;
+    font-size: 1rem;
+  }
+
+  .gate-subtitle {
+    text-align: left;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+
+  .gate-names {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .name-btn {
+    flex: 1 1 auto;
+    padding: 10px 12px;
+    border: 2px solid var(--color-black);
+    border-radius: 6px;
+    background: var(--color-cream);
+    color: var(--color-black);
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .name-btn.selected {
+    background: var(--color-blue);
+    border-color: var(--color-blue);
+    color: #fff;
+  }
+
+  .gate-submit {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    background: var(--color-black);
+    color: var(--color-cream);
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .gate-error {
+    margin-top: 12px;
+    color: var(--color-orange-text);
+    font-weight: bold;
+    min-height: 1.2em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <div id="gate" class="gate-overlay">
+    <div class="gate-box">
+      <h1>Bingo des Amis</h1>
+      <p class="gate-notice">Ce n'est pas une vraie sécurité, juste pour éviter les curieux.</p>
+      <label for="passInput">Mot de passe</label>
+      <input id="passInput" type="password" autocomplete="off" />
+      <p class="gate-subtitle">Qui es-tu ?</p>
+      <div class="gate-names">
+        <button type="button" class="name-btn" data-name="Quentin">Quentin</button>
+        <button type="button" class="name-btn" data-name="Joséphine">Joséphine</button>
+        <button type="button" class="name-btn" data-name="Himanshu">Himanshu</button>
+      </div>
+      <button type="button" id="gateSubmit" class="gate-submit">Entrer</button>
+      <p id="gateError" class="gate-error" role="alert"></p>
+    </div>
+  </div>
+
+  <div class="page">
+    <header class="app-header">
+      <h1>Bingo des Amis</h1>
+      <p id="progress">0 / 45 complétées</p>
+    </header>
+    <div id="errorBanner" class="error-banner" role="alert" hidden>Connexion Supabase indisponible</div>
+    <div id="board" class="board" role="grid" aria-label="Grille de bingo 7 par 7"></div>
+  </div>
+
+  <div id="celebration"></div>
+  <div id="status" class="sr-only" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/twemoji@14/dist/twemoji.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/motion@11/dist/motion.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    var CREDS = {
+      url: 'https://nbegfjsrxfwcuizbhyog.supabase.co',
+      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iZWdmanNyeGZ3Y3VpemJoeW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzIzNTUsImV4cCI6MjEwMzI0ODM1NX0.ulU77am1xyQPcfjtZIfyXvkC75sHbDsSqvhLaV3R96k'
+    };
+    var LS = { pass: 'bingo_amis_pass_ok', name: 'bingo_amis_name' };
+    var VALID_NAMES = ['Quentin', 'Joséphine', 'Himanshu'];
+    var PASSPHRASE = 'amis2026';
+    var OWNER_COLORS = {
+      'Quentin': 'var(--color-blue)',
+      'Joséphine': 'var(--color-orange-fill)',
+      'Himanshu': 'var(--color-black)'
+    };
+    var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    var state = new Map();
+    var celebrated = new Set();
+    var currentName = null;
+    var selectedName = null;
+    var sb = null;
+
+    var gateEl = document.getElementById('gate');
+    var gateError = document.getElementById('gateError');
+    var passInput = document.getElementById('passInput');
+    var nameButtons = document.querySelectorAll('.name-btn');
+    var gateSubmit = document.getElementById('gateSubmit');
+    var boardEl = document.getElementById('board');
+    var progressEl = document.getElementById('progress');
+    var statusEl = document.getElementById('status');
+    var celebrationEl = document.getElementById('celebration');
+    var bannerEl = document.getElementById('errorBanner');
+
+    nameButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        selectedName = btn.dataset.name;
+        nameButtons.forEach(function (b) { b.classList.toggle('selected', b === btn); });
+      });
+    });
+
+    gateSubmit.addEventListener('click', attemptGate);
+    passInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') attemptGate();
+    });
+
+    function attemptGate() {
+      if (!selectedName || VALID_NAMES.indexOf(selectedName) === -1) {
+        gateError.textContent = 'Choisis ton prénom.';
+        return;
+      }
+      if (passInput.value !== PASSPHRASE) {
+        gateError.textContent = 'Mot de passe incorrect.';
+        return;
+      }
+      localStorage.setItem(LS.pass, 'ok');
+      localStorage.setItem(LS.name, selectedName);
+      gateError.textContent = '';
+      currentName = selectedName;
+      gateEl.style.display = 'none';
+      boot();
+    }
+
+    function checkGate() {
+      var passOk = localStorage.getItem(LS.pass) === 'ok';
+      var savedName = localStorage.getItem(LS.name);
+      if (passOk && VALID_NAMES.indexOf(savedName) !== -1) {
+        currentName = savedName;
+        gateEl.style.display = 'none';
+        boot();
+      }
+    }
+
+    function boot() {
+      sb = window.supabase.createClient(CREDS.url, CREDS.anonKey);
+      buildEmptyGrid();
+      loadBoard();
+      subscribeRealtime();
+    }
+
+    function buildEmptyGrid() {
+      boardEl.innerHTML = '';
+      for (var id = 1; id <= 49; id++) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cell';
+        btn.dataset.id = String(id);
+        btn.setAttribute('role', 'gridcell');
+        (function (cellId) {
+          btn.addEventListener('click', function () { toggle(cellId); });
+        })(id);
+        boardEl.appendChild(btn);
+      }
+    }
+
+    function loadBoard() {
+      sb.from('bingo_squares').select('*').order('id').then(function (res) {
+        if (res.error) { renderFallback(); return; }
+        state = new Map(res.data.map(function (row) { return [row.id, row]; }));
+        renderAll();
+        checkLines({ silent: true });
+        updateProgress();
+        hideErrorBanner();
+      }).catch(function () {
+        renderFallback();
+      });
+    }
+
+    function renderFallback() {
+      showErrorBanner();
+      for (var id = 1; id <= 49; id++) {
+        var btn = boardEl.querySelector('[data-id="' + id + '"]');
+        if (!btn) continue;
+        btn.className = 'cell fallback';
+        btn.disabled = true;
+        btn.textContent = '—';
+        btn.setAttribute('aria-label', 'Case indisponible');
+      }
+    }
+
+    function showErrorBanner() { bannerEl.hidden = false; }
+    function hideErrorBanner() { bannerEl.hidden = true; }
+
+    function renderAll() {
+      state.forEach(function (row, id) { renderCell(id, { skipTwemoji: true }); });
+      if (window.twemoji) window.twemoji.parse(boardEl);
+    }
+
+    function renderCell(id, opts) {
+      opts = opts || {};
+      var row = state.get(id);
+      if (!row) return;
+      var btn = boardEl.querySelector('[data-id="' + id + '"]');
+      if (!btn) return;
+
+      var isFree = !!row.is_free;
+      var completed = !!row.completed;
+
+      btn.className = 'cell' + (completed ? ' completed' : '') + (isFree ? ' free' : '');
+      btn.disabled = isFree;
+      btn.setAttribute('aria-disabled', isFree ? 'true' : 'false');
+      btn.setAttribute('aria-pressed', completed ? 'true' : 'false');
+
+      var ownerPart = row.owner ? ('Propriétaire : ' + row.owner + '. ') : '';
+      var statePart = completed
+        ? ('Complété' + (row.completed_by ? (' par ' + row.completed_by) : '') + '.')
+        : 'Non complété.';
+      btn.setAttribute('aria-label', (row.label || '') + '. ' + ownerPart + statePart);
+      btn.title = row.label || '';
+
+      var emojiChar = row.emoji || '';
+      var dotHtml = '';
+      if (!isFree && row.owner) {
+        var initial = row.owner.charAt(0).toUpperCase();
+        var color = OWNER_COLORS[row.owner] || 'var(--color-black)';
+        var orangeClass = row.owner === 'Joséphine' ? ' owner-orange' : '';
+        dotHtml = '<span class="owner-dot' + orangeClass + '" style="background:' + color + '" aria-hidden="true">' + initial + '</span>';
+      }
+
+      btn.innerHTML =
+        '<span class="cell-emoji">' + emojiChar + '</span>' +
+        '<span class="cell-label">' + escapeHtml(row.label || '') + '</span>' +
+        dotHtml;
+
+      if (!opts.skipTwemoji && window.twemoji) window.twemoji.parse(btn);
+    }
+
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function toggle(id) {
+      var row = state.get(id);
+      if (!row || row.is_free) return;
+
+      var prevSnapshot = Object.assign({}, row);
+      var nextCompleted = !row.completed;
+
+      row.completed = nextCompleted;
+      row.completed_by = nextCompleted ? currentName : null;
+      row.completed_at = nextCompleted ? new Date().toISOString() : null;
+      state.set(id, row);
+      renderCell(id);
+
+      var btn = boardEl.querySelector('[data-id="' + id + '"]');
+      animateToggle(btn, nextCompleted);
+
+      checkLines({ silent: false });
+      updateProgress();
+
+      sb.from('bingo_squares')
+        .update({
+          completed: nextCompleted,
+          completed_by: nextCompleted ? currentName : null,
+          completed_at: nextCompleted ? new Date().toISOString() : null
+        })
+        .eq('id', id)
+        .then(function (res) {
+          if (res.error) {
+            state.set(id, prevSnapshot);
+            renderCell(id);
+            updateProgress();
+            announce('Échec de la mise à jour, réessaie.');
+          }
+        })
+        .catch(function () {
+          state.set(id, prevSnapshot);
+          renderCell(id);
+          updateProgress();
+          announce('Échec de la mise à jour, réessaie.');
+        });
+    }
+
+    function animateToggle(el, completed) {
+      if (!el || REDUCED) return;
+      if (window.Motion && window.Motion.animate) {
+        if (completed) {
+          window.Motion.animate(el, { scale: [1, 1.18, 1] }, { duration: 0.26, easing: 'ease-out' });
+        } else {
+          window.Motion.animate(el, { opacity: [1, 0.6, 1] }, { duration: 0.16, easing: 'ease-in' });
+        }
+      }
+    }
+
+    function updateProgress() {
+      var done = 0;
+      state.forEach(function (row) {
+        if (!row.is_free && row.completed) done++;
+      });
+      progressEl.textContent = done + ' / 45 complétées';
+    }
+
+    function checkLines(opts) {
+      var silent = opts.silent;
+      var r, c, ids;
+      for (r = 0; r < 7; r++) {
+        ids = [];
+        for (c = 0; c < 7; c++) ids.push(r * 7 + c + 1);
+        evalLine('row-' + r, ids, silent);
+      }
+      for (c = 0; c < 7; c++) {
+        ids = [];
+        for (r = 0; r < 7; r++) ids.push(r * 7 + c + 1);
+        evalLine('col-' + c, ids, silent);
+      }
+    }
+
+    function evalLine(key, ids, silent) {
+      var complete = ids.every(function (id) {
+        var row = state.get(id);
+        return row && row.completed;
+      });
+      if (complete && !celebrated.has(key)) {
+        celebrated.add(key);
+        if (!silent) celebrate(key);
+      } else if (!complete && celebrated.has(key)) {
+        celebrated.delete(key);
+      }
+    }
+
+    function celebrate() {
+      announce('Ligne complétée !');
+
+      if (REDUCED) {
+        var banner = document.createElement('div');
+        banner.className = 'celebration-banner';
+        banner.textContent = 'Ligne complétée !';
+        celebrationEl.appendChild(banner);
+        if (window.Motion && window.Motion.animate) {
+          window.Motion.animate(banner, { opacity: [0, 1, 0] }, { duration: 1.2, easing: 'ease-in-out' })
+            .finished.then(function () { banner.remove(); });
+        } else {
+          setTimeout(function () { banner.remove(); }, 1200);
+        }
+        return;
+      }
+
+      var colors = ['var(--color-blue)', 'var(--color-orange-fill)', 'var(--color-black)'];
+      for (var i = 0; i < 30; i++) {
+        (function (idx) {
+          var piece = document.createElement('div');
+          piece.className = 'confetti-piece';
+          piece.style.background = colors[idx % colors.length];
+          piece.style.left = (Math.random() * 100) + '%';
+          piece.style.top = (Math.random() * 40) + '%';
+          celebrationEl.appendChild(piece);
+
+          var dx = (Math.random() - 0.5) * 300;
+          var dy = 150 + Math.random() * 250;
+          var rot = (Math.random() - 0.5) * 720;
+
+          if (window.Motion && window.Motion.animate) {
+            window.Motion.animate(
+              piece,
+              {
+                transform: [
+                  'translate(0px,0px) rotate(0deg) scale(1)',
+                  'translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg) scale(0.6)'
+                ],
+                opacity: [1, 0]
+              },
+              { duration: 1.2, easing: 'ease-out' }
+            ).finished.then(function () { piece.remove(); });
+          } else {
+            setTimeout(function () { piece.remove(); }, 1200);
+          }
+        })(i);
+      }
+    }
+
+    function announce(msg) {
+      statusEl.textContent = msg;
+    }
+
+    function subscribeRealtime() {
+      sb.channel('bingo')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bingo_squares' }, function (payload) {
+          var updated = payload.new;
+          if (!updated || !updated.id) return;
+          state.set(updated.id, updated);
+          renderCell(updated.id);
+          checkLines({ silent: false });
+          updateProgress();
+        })
+        .subscribe();
+    }
+
+    checkGate();
+  })();
+  </script>
+</body>
+</html>
