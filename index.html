@@ -18,7 +18,7 @@
   html, body {
     background: var(--color-cream);
     color: var(--color-black);
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
 
   .sr-only {
@@ -108,6 +108,7 @@
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: clamp(3px, 1vw, 10px);
+    perspective: 600px;
   }
 
   .cell {
@@ -125,6 +126,7 @@
     border-radius: 14px;
     padding: 4px;
     cursor: pointer;
+    overflow: hidden;
     box-shadow: 0 1px 2px rgba(17,17,17,0.06), 0 2px 6px rgba(17,17,17,0.08);
     transition: background-color 0.2s ease, opacity 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
   }
@@ -138,12 +140,34 @@
     cursor: default;
   }
 
-  .cell.completed {
-    background: #16A34A;
+  .cell.completed:not(.free) .cell-label,
+  .cell.completed:not(.free) .cell-emoji {
+    opacity: 0.35;
   }
 
-  .cell.completed:not(.free) .cell-label {
-    text-decoration: line-through;
+  .x-mark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .x-bar {
+    position: absolute;
+    width: 76%;
+    height: clamp(6px, 1.6vw, 8px);
+    background: #7C3AED;
+    border-radius: 999px;
+  }
+
+  .x-bar-1 {
+    transform: rotate(45deg);
+  }
+
+  .x-bar-2 {
+    transform: rotate(-45deg);
   }
 
   .cell.free {
@@ -203,10 +227,124 @@
     color: var(--color-black);
   }
 
+  .owner-lists {
+    margin-top: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .owner-list {
+    background: #FFFFFF;
+    border: 2px solid var(--color-black);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(17,17,17,0.06), 0 2px 6px rgba(17,17,17,0.08);
+  }
+
+  .owner-list-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
+  .owner-list-name {
+    font-weight: bold;
+    min-width: 90px;
+  }
+
+  .owner-list-bar-track {
+    flex: 1 1 120px;
+    height: 10px;
+    border-radius: 999px;
+    background: #EDEDED;
+    overflow: hidden;
+  }
+
+  .owner-list-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    transition: width 0.3s ease;
+  }
+
+  .owner-list-pct {
+    font-weight: bold;
+    font-size: 0.9rem;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  .owner-list[data-owner="Quentin"] .owner-list-name,
+  .owner-list[data-owner="Quentin"] .owner-list-pct {
+    color: var(--color-blue);
+  }
+
+  .owner-list[data-owner="Quentin"] .owner-list-bar-fill {
+    background: var(--color-blue);
+  }
+
+  .owner-list[data-owner="Joséphine"] .owner-list-name,
+  .owner-list[data-owner="Joséphine"] .owner-list-pct {
+    color: var(--color-orange-text);
+  }
+
+  .owner-list[data-owner="Joséphine"] .owner-list-bar-fill {
+    background: var(--color-orange-text);
+  }
+
+  .owner-list[data-owner="Himanshu"] .owner-list-name,
+  .owner-list[data-owner="Himanshu"] .owner-list-pct {
+    color: var(--color-black);
+  }
+
+  .owner-list[data-owner="Himanshu"] .owner-list-bar-fill {
+    background: var(--color-black);
+  }
+
+  .owner-list-items {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .owner-task-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 0.9rem;
+    color: var(--color-black);
+    cursor: pointer;
+  }
+
+  .owner-task-btn:hover {
+    background: #F3F3F3;
+  }
+
+  .owner-task-btn.completed {
+    text-decoration: line-through;
+    color: #8A8A8A;
+  }
+
+  .owner-task-btn:focus-visible {
+    outline: 3px solid var(--color-blue);
+    outline-offset: 2px;
+  }
+
   @media (max-width: 600px) {
     .page { padding: 12px; }
     .cell-label { -webkit-line-clamp: 2; }
     .owner-badge { font-size: 0.7rem; padding: 3px 7px; }
+    .owner-list { padding: 10px 12px; }
+    .owner-list-name { font-size: 0.85rem; min-width: 70px; }
+    .owner-task-btn { font-size: 0.8rem; padding: 5px 6px; }
   }
 
   #celebration {
@@ -221,6 +359,12 @@
     width: 10px;
     height: 10px;
     border-radius: 2px;
+  }
+
+  .firework-particle {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
   }
 
   .celebration-banner {
@@ -391,6 +535,33 @@
     </header>
     <div id="errorBanner" class="error-banner" role="alert" hidden>Connexion Supabase indisponible</div>
     <div id="board" class="board" role="group" aria-label="Grille de bingo 7 par 7"></div>
+
+    <section id="ownerLists" class="owner-lists" aria-label="Listes de tâches par personne">
+      <div class="owner-list" data-owner="Quentin">
+        <div class="owner-list-header">
+          <span class="owner-list-name">Quentin</span>
+          <div class="owner-list-bar-track"><div class="owner-list-bar-fill" id="bar-Quentin"></div></div>
+          <span class="owner-list-pct" id="pct-Quentin">0%</span>
+        </div>
+        <ul class="owner-list-items" id="list-Quentin"></ul>
+      </div>
+      <div class="owner-list" data-owner="Joséphine">
+        <div class="owner-list-header">
+          <span class="owner-list-name">Joséphine</span>
+          <div class="owner-list-bar-track"><div class="owner-list-bar-fill" id="bar-Joséphine"></div></div>
+          <span class="owner-list-pct" id="pct-Joséphine">0%</span>
+        </div>
+        <ul class="owner-list-items" id="list-Joséphine"></ul>
+      </div>
+      <div class="owner-list" data-owner="Himanshu">
+        <div class="owner-list-header">
+          <span class="owner-list-name">Himanshu</span>
+          <div class="owner-list-bar-track"><div class="owner-list-bar-fill" id="bar-Himanshu"></div></div>
+          <span class="owner-list-pct" id="pct-Himanshu">0%</span>
+        </div>
+        <ul class="owner-list-items" id="list-Himanshu"></ul>
+      </div>
+    </section>
   </div>
 
   <div id="celebration"></div>
@@ -502,6 +673,7 @@
         checkLines({ silent: true });
         updateProgress();
         updateOwnerProgress();
+        renderOwnerLists();
         hideErrorBanner();
       }).catch(function () {
         renderFallback();
@@ -561,10 +733,15 @@
         dotHtml = '<span class="owner-dot' + orangeClass + '" style="background:' + color + '" aria-hidden="true">' + escapeHtml(initial) + '</span>';
       }
 
+      var xMarkHtml = (!isFree && completed)
+        ? '<span class="x-mark" aria-hidden="true"><span class="x-bar x-bar-1"></span><span class="x-bar x-bar-2"></span></span>'
+        : '';
+
       btn.innerHTML =
         '<span class="cell-emoji">' + emojiChar + '</span>' +
         '<span class="cell-label">' + escapeHtml(row.label || '') + '</span>' +
-        dotHtml;
+        dotHtml +
+        xMarkHtml;
 
       if (!opts.skipTwemoji && window.twemoji) window.twemoji.parse(btn);
     }
@@ -586,10 +763,9 @@
       row.completed_by = nextCompleted ? currentName : null;
       row.completed_at = nextCompleted ? new Date().toISOString() : null;
       state.set(id, row);
-      renderCell(id);
 
       var btn = boardEl.querySelector('[data-id="' + id + '"]');
-      animateToggle(btn, nextCompleted);
+      flipCell(btn, id);
 
       announce((row.label || 'Case') + (nextCompleted
         ? (' cochée par ' + currentName + '.')
@@ -598,6 +774,7 @@
       checkLines({ silent: false });
       updateProgress();
       updateOwnerProgress();
+      renderOwnerLists();
 
       sb.from('bingo_squares')
         .update({
@@ -614,6 +791,7 @@
             checkLines({ silent: true });
             updateProgress();
             updateOwnerProgress();
+            renderOwnerLists();
             announce('Échec de la mise à jour, réessaie.');
           }
         })
@@ -623,19 +801,24 @@
           checkLines({ silent: true });
           updateProgress();
           updateOwnerProgress();
+          renderOwnerLists();
           announce('Échec de la mise à jour, réessaie.');
         });
     }
 
-    function animateToggle(el, completed) {
-      if (!el || REDUCED) return;
-      if (window.Motion && window.Motion.animate) {
-        if (completed) {
-          window.Motion.animate(el, { scale: [1, 1.18, 1] }, { duration: 0.26, ease: 'easeOut' });
-        } else {
-          window.Motion.animate(el, { opacity: [1, 0.6, 1] }, { duration: 0.16, ease: 'easeIn' });
-        }
+    function flipCell(el, id) {
+      if (!el || REDUCED || !(window.Motion && window.Motion.animate)) {
+        renderCell(id);
+        return;
       }
+      window.Motion.animate(el, { rotateY: [0, 90] }, { duration: 0.15, ease: 'easeIn' })
+        .finished.then(function () {
+          renderCell(id);
+          return window.Motion.animate(el, { rotateY: [90, 0] }, { duration: 0.15, ease: 'easeOut' }).finished;
+        })
+        .catch(function () {
+          renderCell(id);
+        });
     }
 
     function updateProgress() {
@@ -658,6 +841,51 @@
       Object.keys(counts).forEach(function (owner) {
         var el = document.getElementById('prog-' + owner);
         if (el) el.textContent = String(counts[owner]);
+      });
+    }
+
+    function renderOwnerLists() {
+      var owners = ['Quentin', 'Joséphine', 'Himanshu'];
+      owners.forEach(function (owner) {
+        var rows = [];
+        state.forEach(function (row) {
+          if (!row.is_free && row.owner === owner) rows.push(row);
+        });
+
+        var done = rows.filter(function (r) { return r.completed; }).length;
+        var total = rows.length;
+        var pct = total ? Math.round((done / total) * 100) : 0;
+
+        var barEl = document.getElementById('bar-' + owner);
+        if (barEl) barEl.style.width = pct + '%';
+        var pctEl = document.getElementById('pct-' + owner);
+        if (pctEl) pctEl.textContent = pct + '%';
+
+        rows.sort(function (a, b) {
+          if (!!a.completed !== !!b.completed) return a.completed ? 1 : -1;
+          return a.id - b.id;
+        });
+
+        var listEl = document.getElementById('list-' + owner);
+        if (!listEl) return;
+        listEl.innerHTML = '';
+        rows.forEach(function (row) {
+          var li = document.createElement('li');
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'owner-task-btn' + (row.completed ? ' completed' : '');
+          btn.textContent = row.label || '';
+          var stateText = row.completed
+            ? ('Complété' + (row.completed_by ? (' par ' + row.completed_by) : '') + '.')
+            : 'Non complété.';
+          btn.setAttribute('aria-pressed', row.completed ? 'true' : 'false');
+          btn.setAttribute('aria-label', (row.label || '') + '. ' + stateText);
+          btn.addEventListener('click', (function (taskId) {
+            return function () { toggle(taskId); };
+          })(row.id));
+          li.appendChild(btn);
+          listEl.appendChild(li);
+        });
       });
     }
 
@@ -710,19 +938,34 @@
         return;
       }
 
-      var colors = ['var(--color-blue)', 'var(--color-orange-fill)', 'var(--color-black)'];
-      for (var i = 0; i < 30; i++) {
+      spawnConfettiRain();
+      spawnFireworks();
+    }
+
+    var CELEBRATION_COLORS = [
+      'var(--color-blue)',
+      'var(--color-orange-fill)',
+      'var(--color-black)',
+      '#7C3AED',
+      '#FBBF24',
+      '#EC4899'
+    ];
+
+    function spawnConfettiRain() {
+      var count = 140;
+      for (var i = 0; i < count; i++) {
         (function (idx) {
           var piece = document.createElement('div');
           piece.className = 'confetti-piece';
-          piece.style.background = colors[idx % colors.length];
+          piece.style.background = CELEBRATION_COLORS[idx % CELEBRATION_COLORS.length];
           piece.style.left = (Math.random() * 100) + '%';
-          piece.style.top = (Math.random() * 40) + '%';
+          piece.style.top = (Math.random() * 30) + '%';
           celebrationEl.appendChild(piece);
 
-          var dx = (Math.random() - 0.5) * 300;
-          var dy = 150 + Math.random() * 250;
-          var rot = (Math.random() - 0.5) * 720;
+          var dx = (Math.random() - 0.5) * 360;
+          var dy = 180 + Math.random() * 320;
+          var rot = (Math.random() - 0.5) * 900;
+          var delay = Math.random() * 0.3;
 
           if (window.Motion && window.Motion.animate) {
             window.Motion.animate(
@@ -731,15 +974,50 @@
                 x: [0, dx],
                 y: [0, dy],
                 rotate: [0, rot],
-                scale: [1, 0.6],
+                scale: [1, 0.5],
                 opacity: [1, 0]
               },
-              { duration: 1.2, ease: 'easeOut' }
-            ).finished.then(function () { piece.remove(); });
+              { duration: 1.4, delay: delay, ease: 'easeOut' }
+            ).finished.then(function () { piece.remove(); }).catch(function () { piece.remove(); });
           } else {
-            setTimeout(function () { piece.remove(); }, 1200);
+            setTimeout(function () { piece.remove(); }, 1700);
           }
         })(i);
+      }
+    }
+
+    function spawnFireworks() {
+      var burstCount = 5;
+      var particlesPerBurst = 18;
+      for (var b = 0; b < burstCount; b++) {
+        var cx = 15 + Math.random() * 70;
+        var cy = 15 + Math.random() * 40;
+        var burstDelay = Math.random() * 0.5;
+        for (var p = 0; p < particlesPerBurst; p++) {
+          (function (pIdx) {
+            var particle = document.createElement('div');
+            particle.className = 'confetti-piece firework-particle';
+            particle.style.background = CELEBRATION_COLORS[pIdx % CELEBRATION_COLORS.length];
+            particle.style.left = cx + '%';
+            particle.style.top = cy + '%';
+            celebrationEl.appendChild(particle);
+
+            var angle = (pIdx / particlesPerBurst) * Math.PI * 2 + Math.random() * 0.3;
+            var radius = 60 + Math.random() * 90;
+            var fx = Math.cos(angle) * radius;
+            var fy = Math.sin(angle) * radius;
+
+            if (window.Motion && window.Motion.animate) {
+              window.Motion.animate(
+                particle,
+                { x: [0, fx], y: [0, fy], scale: [1, 0.3], opacity: [1, 0] },
+                { duration: 0.9, delay: burstDelay, ease: 'easeOut' }
+              ).finished.then(function () { particle.remove(); }).catch(function () { particle.remove(); });
+            } else {
+              setTimeout(function () { particle.remove(); }, 1500);
+            }
+          })(p);
+        }
       }
     }
 
@@ -760,6 +1038,7 @@
           checkLines({ silent: false });
           updateProgress();
           updateOwnerProgress();
+          renderOwnerLists();
         })
         .subscribe(function (status) {
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
