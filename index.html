@@ -99,6 +99,7 @@
   .cell.free {
     background: #DCEBFF;
     opacity: 0.9;
+    cursor: default;
   }
 
   .cell.fallback {
@@ -308,10 +309,10 @@
   <div class="page">
     <header class="app-header">
       <h1>Bingo des Amis</h1>
-      <p id="progress">0 / 45 complétées</p>
+      <p id="progress">Chargement…</p>
     </header>
     <div id="errorBanner" class="error-banner" role="alert" hidden>Connexion Supabase indisponible</div>
-    <div id="board" class="board" role="grid" aria-label="Grille de bingo 7 par 7"></div>
+    <div id="board" class="board" role="group" aria-label="Grille de bingo 7 par 7"></div>
   </div>
 
   <div id="celebration"></div>
@@ -372,7 +373,7 @@
         gateError.textContent = 'Choisis ton prénom.';
         return;
       }
-      if (passInput.value !== PASSPHRASE) {
+      if (passInput.value.trim() !== PASSPHRASE) {
         gateError.textContent = 'Mot de passe incorrect.';
         return;
       }
@@ -408,7 +409,6 @@
         btn.type = 'button';
         btn.className = 'cell';
         btn.dataset.id = String(id);
-        btn.setAttribute('role', 'gridcell');
         (function (cellId) {
           btn.addEventListener('click', function () { toggle(cellId); });
         })(id);
@@ -460,7 +460,7 @@
       var completed = !!row.completed;
 
       btn.className = 'cell' + (completed ? ' completed' : '') + (isFree ? ' free' : '');
-      btn.disabled = isFree;
+      btn.disabled = false;
       btn.setAttribute('aria-disabled', isFree ? 'true' : 'false');
       btn.setAttribute('aria-pressed', completed ? 'true' : 'false');
 
@@ -471,13 +471,15 @@
       btn.setAttribute('aria-label', (row.label || '') + '. ' + ownerPart + statePart);
       btn.title = row.label || '';
 
-      var emojiChar = row.emoji || '';
+      var emojiChar = escapeHtml(row.emoji || '');
       var dotHtml = '';
       if (!isFree && row.owner) {
         var initial = row.owner.charAt(0).toUpperCase();
-        var color = OWNER_COLORS[row.owner] || 'var(--color-black)';
+        var color = Object.prototype.hasOwnProperty.call(OWNER_COLORS, row.owner)
+          ? OWNER_COLORS[row.owner]
+          : 'var(--color-black)';
         var orangeClass = row.owner === 'Joséphine' ? ' owner-orange' : '';
-        dotHtml = '<span class="owner-dot' + orangeClass + '" style="background:' + color + '" aria-hidden="true">' + initial + '</span>';
+        dotHtml = '<span class="owner-dot' + orangeClass + '" style="background:' + color + '" aria-hidden="true">' + escapeHtml(initial) + '</span>';
       }
 
       btn.innerHTML =
@@ -510,6 +512,10 @@
       var btn = boardEl.querySelector('[data-id="' + id + '"]');
       animateToggle(btn, nextCompleted);
 
+      announce((row.label || 'Case') + (nextCompleted
+        ? (' cochée par ' + currentName + '.')
+        : ' décochée.'));
+
       checkLines({ silent: false });
       updateProgress();
 
@@ -520,10 +526,12 @@
           completed_at: nextCompleted ? new Date().toISOString() : null
         })
         .eq('id', id)
+        .select()
         .then(function (res) {
-          if (res.error) {
+          if (res.error || !res.data || res.data.length !== 1) {
             state.set(id, prevSnapshot);
             renderCell(id);
+            checkLines({ silent: true });
             updateProgress();
             announce('Échec de la mise à jour, réessaie.');
           }
@@ -531,6 +539,7 @@
         .catch(function () {
           state.set(id, prevSnapshot);
           renderCell(id);
+          checkLines({ silent: true });
           updateProgress();
           announce('Échec de la mise à jour, réessaie.');
         });
@@ -540,19 +549,23 @@
       if (!el || REDUCED) return;
       if (window.Motion && window.Motion.animate) {
         if (completed) {
-          window.Motion.animate(el, { scale: [1, 1.18, 1] }, { duration: 0.26, easing: 'ease-out' });
+          window.Motion.animate(el, { scale: [1, 1.18, 1] }, { duration: 0.26, ease: 'easeOut' });
         } else {
-          window.Motion.animate(el, { opacity: [1, 0.6, 1] }, { duration: 0.16, easing: 'ease-in' });
+          window.Motion.animate(el, { opacity: [1, 0.6, 1] }, { duration: 0.16, ease: 'easeIn' });
         }
       }
     }
 
     function updateProgress() {
       var done = 0;
+      var total = 0;
       state.forEach(function (row) {
-        if (!row.is_free && row.completed) done++;
+        if (!row.is_free) {
+          total++;
+          if (row.completed) done++;
+        }
       });
-      progressEl.textContent = done + ' / 45 complétées';
+      progressEl.textContent = done + ' / ' + total + ' complétées';
     }
 
     function checkLines(opts) {
@@ -573,7 +586,7 @@
     function evalLine(key, ids, silent) {
       var complete = ids.every(function (id) {
         var row = state.get(id);
-        return row && row.completed;
+        return row && (row.completed || row.is_free);
       });
       if (complete && !celebrated.has(key)) {
         celebrated.add(key);
@@ -583,16 +596,20 @@
       }
     }
 
-    function celebrate() {
-      announce('Ligne complétée !');
+    function celebrate(key) {
+      var parts = key.split('-');
+      var kind = parts[0];
+      var idx = parseInt(parts[1], 10) + 1;
+      var message = (kind === 'row' ? ('Ligne ' + idx) : ('Colonne ' + idx)) + ' complétée !';
+      announce(message);
 
       if (REDUCED) {
         var banner = document.createElement('div');
         banner.className = 'celebration-banner';
-        banner.textContent = 'Ligne complétée !';
+        banner.textContent = message;
         celebrationEl.appendChild(banner);
         if (window.Motion && window.Motion.animate) {
-          window.Motion.animate(banner, { opacity: [0, 1, 0] }, { duration: 1.2, easing: 'ease-in-out' })
+          window.Motion.animate(banner, { opacity: [0, 1, 0] }, { duration: 1.2, ease: 'easeInOut' })
             .finished.then(function () { banner.remove(); });
         } else {
           setTimeout(function () { banner.remove(); }, 1200);
@@ -618,13 +635,13 @@
             window.Motion.animate(
               piece,
               {
-                transform: [
-                  'translate(0px,0px) rotate(0deg) scale(1)',
-                  'translate(' + dx + 'px,' + dy + 'px) rotate(' + rot + 'deg) scale(0.6)'
-                ],
+                x: [0, dx],
+                y: [0, dy],
+                rotate: [0, rot],
+                scale: [1, 0.6],
                 opacity: [1, 0]
               },
-              { duration: 1.2, easing: 'ease-out' }
+              { duration: 1.2, ease: 'easeOut' }
             ).finished.then(function () { piece.remove(); });
           } else {
             setTimeout(function () { piece.remove(); }, 1200);
@@ -644,10 +661,20 @@
           if (!updated || !updated.id) return;
           state.set(updated.id, updated);
           renderCell(updated.id);
+          announce((updated.label || 'Case') + (updated.completed
+            ? (' cochée par ' + (updated.completed_by || 'quelqu\'un') + '.')
+            : ' décochée.'));
           checkLines({ silent: false });
           updateProgress();
         })
-        .subscribe();
+        .subscribe(function (status) {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            showErrorBanner();
+          } else if (status === 'SUBSCRIBED') {
+            hideErrorBanner();
+            loadBoard();
+          }
+        });
     }
 
     checkGate();
