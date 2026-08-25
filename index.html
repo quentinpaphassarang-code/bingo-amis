@@ -34,7 +34,7 @@
   .page {
     max-width: 900px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 24px;
   }
 
   .app-header {
@@ -48,6 +48,8 @@
 
   .app-header h1 {
     font-size: clamp(1.25rem, 4vw, 2rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   #progress {
@@ -73,7 +75,9 @@
     color: var(--color-black);
     font-size: 0.85rem;
     font-weight: bold;
+    letter-spacing: 0.01em;
     white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(17,17,17,0.06), 0 2px 6px rgba(17,17,17,0.08);
   }
 
   .owner-badge[data-owner="Quentin"] {
@@ -95,7 +99,7 @@
     background: var(--color-orange-text);
     color: var(--color-cream);
     padding: 10px 14px;
-    border-radius: 8px;
+    border-radius: 12px;
     margin-bottom: 14px;
     font-weight: bold;
   }
@@ -103,7 +107,7 @@
   .board {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: clamp(2px, 0.8vw, 8px);
+    gap: clamp(3px, 1vw, 10px);
   }
 
   .cell {
@@ -118,10 +122,16 @@
     background: #FFFFFF;
     color: var(--color-black);
     border: 2px solid var(--color-black);
-    border-radius: 8px;
+    border-radius: 14px;
     padding: 4px;
     cursor: pointer;
-    transition: background-color 0.2s ease, opacity 0.2s ease;
+    box-shadow: 0 1px 2px rgba(17,17,17,0.06), 0 2px 6px rgba(17,17,17,0.08);
+    transition: background-color 0.2s ease, opacity 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
+  }
+
+  .cell:not(.free):not(:disabled):active {
+    transform: scale(0.97);
+    box-shadow: 0 1px 1px rgba(17,17,17,0.06);
   }
 
   .cell:disabled {
@@ -194,7 +204,7 @@
   }
 
   @media (max-width: 600px) {
-    .page { padding: 8px; }
+    .page { padding: 12px; }
     .cell-label { -webkit-line-clamp: 2; }
     .owner-badge { font-size: 0.7rem; padding: 3px 7px; }
   }
@@ -221,7 +231,7 @@
     background: var(--color-black);
     color: var(--color-cream);
     padding: 14px 22px;
-    border-radius: 10px;
+    border-radius: 14px;
     font-weight: bold;
     font-size: 1.1rem;
   }
@@ -241,17 +251,21 @@
     max-width: 360px;
     width: 100%;
     text-align: center;
+    box-shadow: 0 1px 2px rgba(17,17,17,0.06), 0 2px 6px rgba(17,17,17,0.08);
   }
 
   .gate-box h1 {
     margin-bottom: 10px;
     font-size: clamp(1.25rem, 5vw, 1.8rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   .gate-notice {
     font-size: 0.85rem;
     color: #555;
     margin-bottom: 20px;
+    line-height: 1.5;
   }
 
   .gate-box label {
@@ -265,15 +279,17 @@
     width: 100%;
     padding: 10px;
     border: 2px solid var(--color-black);
-    border-radius: 6px;
+    border-radius: 10px;
     margin-bottom: 18px;
     font-size: 1rem;
+    box-shadow: 0 1px 2px rgba(17,17,17,0.06), 0 2px 6px rgba(17,17,17,0.08);
   }
 
   .gate-subtitle {
     text-align: left;
     font-weight: bold;
     margin-bottom: 8px;
+    line-height: 1.5;
   }
 
   .gate-names {
@@ -288,11 +304,18 @@
     flex: 1 1 auto;
     padding: 10px 12px;
     border: 2px solid var(--color-black);
-    border-radius: 6px;
+    border-radius: 10px;
     background: var(--color-cream);
     color: var(--color-black);
     cursor: pointer;
     font-weight: bold;
+    box-shadow: 0 1px 2px rgba(17,17,17,0.06), 0 2px 6px rgba(17,17,17,0.08);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+
+  .name-btn:active {
+    transform: scale(0.97);
+    box-shadow: 0 1px 1px rgba(17,17,17,0.06);
   }
 
   .name-btn.selected {
@@ -305,12 +328,19 @@
     width: 100%;
     padding: 12px;
     border: none;
-    border-radius: 6px;
+    border-radius: 10px;
     background: var(--color-black);
     color: var(--color-cream);
     font-weight: bold;
     font-size: 1rem;
     cursor: pointer;
+    box-shadow: 0 1px 2px rgba(17,17,17,0.06), 0 2px 6px rgba(17,17,17,0.08);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+
+  .gate-submit:active {
+    transform: scale(0.97);
+    box-shadow: 0 1px 1px rgba(17,17,17,0.06);
   }
 
   .gate-error {
